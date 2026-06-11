@@ -1,3 +1,13 @@
+(function setupMobileNav() {
+  const mq = window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)');
+  function apply() {
+    document.documentElement.classList.toggle('mobile-nav', mq.matches);
+  }
+  apply();
+  if (mq.addEventListener) mq.addEventListener('change', apply);
+  else mq.addListener(apply);
+})();
+
 const KEY = 'depenses_bf_v1';
 const JOURS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 let state = { repas: [], depenses: [], dettes: [], budgets: [] };
@@ -124,7 +134,7 @@ document.querySelectorAll('.tab').forEach(t => {
     t.classList.add('active');
     t.setAttribute('aria-selected', 'true');
     document.getElementById(t.dataset.tab).classList.add('active');
-    if (window.matchMedia('(max-width: 768px)').matches) {
+    if (document.documentElement.classList.contains('mobile-nav')) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -723,6 +733,6 @@ window.addEventListener('appinstalled', () => {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=4').then(reg => reg.update()).catch(() => {});
   });
 }
