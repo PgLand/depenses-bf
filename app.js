@@ -9,9 +9,11 @@
 })();
 
 const KEY = 'depenses_bf_v1';
+const PERIOD_CUTOFF = 15;
+const MOIS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const JOURS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 let state = { repas: [], depenses: [], dettes: [], budgets: [] };
-let currentMonth = new Date().toISOString().slice(0, 7);
+let currentMonth = getCurrentPeriod();
 
 function load() {
   try {
@@ -66,8 +68,66 @@ function esc(s) {
     .replace(/"/g, '&quot;');
 }
 
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function periodKey(y, m) {
+  return `${y}-${pad2(m)}`;
+}
+
+function shiftMonth(y, m, delta) {
+  let nm = m + delta;
+  let ny = y;
+  while (nm > 12) { nm -= 12; ny += 1; }
+  while (nm < 1) { nm += 12; ny -= 1; }
+  return [ny, nm];
+}
+
+function isoDate(y, m, d) {
+  return `${y}-${pad2(m)}-${pad2(d)}`;
+}
+
+function periodRange(periodKeyStr) {
+  const [y, m] = periodKeyStr.split('-').map(Number);
+  const [ny, nm] = shiftMonth(y, m, 1);
+  return {
+    start: isoDate(y, m, PERIOD_CUTOFF),
+    end: isoDate(ny, nm, PERIOD_CUTOFF)
+  };
+}
+
 function inMonth(date, m) {
-  return date && date.startsWith(m);
+  if (!date || !m) return false;
+  const { start, end } = periodRange(m);
+  if (date < start || date > end) return false;
+  const [y, mo] = m.split('-').map(Number);
+  const [, dm] = date.split('-').map(Number);
+  const [py, pm] = shiftMonth(y, mo, -1);
+  const prevEnd = periodRange(periodKey(py, pm)).end;
+  if (date === prevEnd && date === start && dm > pm) return false;
+  return true;
+}
+
+function getCurrentPeriod(dateStr = todayISO()) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const cur = periodKey(y, m);
+  const [py, pm] = shiftMonth(y, m, -1);
+  const prev = periodKey(py, pm);
+  if (d < PERIOD_CUTOFF) return inMonth(dateStr, prev) ? prev : cur;
+  return inMonth(dateStr, cur) ? cur : prev;
+}
+
+function periodLabel(periodKeyStr) {
+  const [y, m] = periodKeyStr.split('-').map(Number);
+  const [ny, nm] = shiftMonth(y, m, 1);
+  const endYear = nm < m ? ny : y;
+  return `15 ${MOIS_FR[m - 1]} – 15 ${MOIS_FR[nm - 1]} ${endYear}`;
+}
+
+function updatePeriodLabel() {
+  const el = document.getElementById('periodLabel');
+  if (el) el.textContent = periodLabel(currentMonth);
 }
 
 function todayISO() {
@@ -140,11 +200,13 @@ document.querySelectorAll('.tab').forEach(t => {
   };
 });
 
-// Period
+// Period (du 15 au 15)
 const pm = document.getElementById('periodMonth');
 pm.value = currentMonth;
+updatePeriodLabel();
 pm.onchange = () => {
   currentMonth = pm.value;
+  updatePeriodLabel();
   renderAll();
 };
 
@@ -226,7 +288,7 @@ function renderRepas() {
     .filter(r => inMonth(r.date, currentMonth))
     .sort((a, b) => b.date.localeCompare(a.date));
   if (!rows.length) {
-    tb.innerHTML = emptyRow(8, 'Aucun repas pour ce mois');
+    tb.innerHTML = emptyRow(8, 'Aucun repas pour cette période');
   } else {
     rows.forEach(r => {
       const tot = repasTotal(r);
@@ -332,7 +394,7 @@ function renderDep() {
     .filter(d => !q || d.lib.toLowerCase().includes(q) || d.cat.toLowerCase().includes(q))
     .sort((a, b) => b.date.localeCompare(a.date));
   if (!rows.length) {
-    tb.innerHTML = emptyRow(5, q ? 'Aucun résultat' : 'Aucune dépense pour ce mois');
+    tb.innerHTML = emptyRow(5, q ? 'Aucun résultat' : 'Aucune dépense pour cette période');
   } else {
     rows.forEach(d => {
       tot += d.mont;
@@ -500,7 +562,7 @@ formBud.onsubmit = e => {
     const b = state.budgets.find(x => x.id === editId);
     const conflict = state.budgets.find(x => x.mois === m && x.id !== editId);
     if (conflict) {
-      toast('Un budget existe déjà pour ce mois', 'error');
+      toast('Un budget existe déjà pour cette période', 'error');
       return;
     }
     b.mois = m;
@@ -530,7 +592,7 @@ function renderBud() {
       const reste = b.mont - dep;
       const cls = reste < 0 ? 'text-danger' : 'text-success';
       tb.innerHTML += `<tr>
-        ${td(esc(b.mois), 'Mois')}
+        ${td(periodLabel(b.mois), 'Période')}
         ${td(fmt(b.mont), 'Budget')}
         ${td(fmt(dep), 'Dépenses')}
         ${td('<span class="' + cls + '"><b>' + fmt(reste) + '</b></span>', 'Reste')}
@@ -633,7 +695,7 @@ function renderDashboard() {
   const tl = document.querySelector('#tblLast tbody');
   tl.innerHTML = '';
   if (!all.length) {
-    tl.innerHTML = emptyRow(4, 'Aucune opération ce mois');
+    tl.innerHTML = emptyRow(4, 'Aucune opération cette période');
   } else {
     all.forEach(o => {
       const cls = o.mont < 0 ? 'text-danger' : 'text-success';
