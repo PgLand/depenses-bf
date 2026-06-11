@@ -91,6 +91,10 @@ function emptyRow(cols, msg) {
   return `<tr><td colspan="${cols}" class="empty">${esc(msg)}</td></tr>`;
 }
 
+function td(content, label) {
+  return label ? `<td data-label="${esc(label)}">${content}</td>` : `<td>${content}</td>`;
+}
+
 function actionCell(editFn, delFn, id, extra = '') {
   return `<td class="actions">
     <button class="edit-btn" onclick="${editFn}('${esc(id)}')" aria-label="Modifier" title="Modifier">✎</button>
@@ -120,6 +124,9 @@ document.querySelectorAll('.tab').forEach(t => {
     t.classList.add('active');
     t.setAttribute('aria-selected', 'true');
     document.getElementById(t.dataset.tab).classList.add('active');
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 });
 
@@ -219,13 +226,13 @@ function renderRepas() {
       tsn += r.snack || 0;
       tt += tot;
       tb.innerHTML += `<tr>
-        <td>${esc(r.date)}</td>
-        <td>${esc(jourSemaine(r.date))}</td>
-        <td>${r.petit ? fmt(r.petit) : '—'}</td>
-        <td>${r.dej ? fmt(r.dej) : '—'}</td>
-        <td>${r.diner ? fmt(r.diner) : '—'}</td>
-        <td>${r.snack ? fmt(r.snack) : '—'}</td>
-        <td><b>${fmt(tot)}</b></td>
+        ${td(esc(r.date), 'Date')}
+        ${td(esc(jourSemaine(r.date)), 'Jour')}
+        ${td(r.petit ? fmt(r.petit) : '—', 'Petit-déj')}
+        ${td(r.dej ? fmt(r.dej) : '—', 'Déjeuner')}
+        ${td(r.diner ? fmt(r.diner) : '—', 'Dîner')}
+        ${td(r.snack ? fmt(r.snack) : '—', 'Snack')}
+        ${td('<b>' + fmt(tot) + '</b>', 'Total')}
         ${actionCell('editRepas', 'delRepas', r.id)}
       </tr>`;
     });
@@ -320,10 +327,10 @@ function renderDep() {
     rows.forEach(d => {
       tot += d.mont;
       tb.innerHTML += `<tr>
-        <td>${esc(d.date)}</td>
-        <td>${esc(d.cat)}</td>
-        <td>${esc(d.lib)}</td>
-        <td>${fmt(d.mont)}</td>
+        ${td(esc(d.date), 'Date')}
+        ${td(esc(d.cat), 'Catégorie')}
+        ${td(esc(d.lib), 'Libellé')}
+        ${td(fmt(d.mont), 'Montant')}
         ${actionCell('editDep', 'delDep', d.id)}
       </tr>`;
     });
@@ -409,10 +416,10 @@ function renderDet() {
       if (d.statut === 'dû') reste += d.mont;
       const bc = d.statut === 'dû' ? 'b-due' : 'b-paid';
       tb.innerHTML += `<tr>
-        <td>${esc(d.date)}</td>
-        <td>${esc(d.nom)}</td>
-        <td>${fmt(d.mont)}</td>
-        <td><span class="badge ${bc}">${esc(d.statut)}</span></td>
+        ${td(esc(d.date), 'Date')}
+        ${td(esc(d.nom), 'Personne')}
+        ${td(fmt(d.mont), 'Montant')}
+        ${td('<span class="badge ' + bc + '">' + esc(d.statut) + '</span>', 'Statut')}
         <td class="actions">
           <button class="edit-btn" onclick="editDet('${esc(d.id)}')" aria-label="Modifier" title="Modifier">✎</button>
           <button onclick="toggleDet('${esc(d.id)}')" aria-label="Changer statut" title="Basculer statut">↔</button>
@@ -513,10 +520,10 @@ function renderBud() {
       const reste = b.mont - dep;
       const cls = reste < 0 ? 'text-danger' : 'text-success';
       tb.innerHTML += `<tr>
-        <td>${esc(b.mois)}</td>
-        <td>${fmt(b.mont)}</td>
-        <td>${fmt(dep)}</td>
-        <td class="${cls}"><b>${fmt(reste)}</b></td>
+        ${td(esc(b.mois), 'Mois')}
+        ${td(fmt(b.mont), 'Budget')}
+        ${td(fmt(dep), 'Dépenses')}
+        ${td('<span class="' + cls + '"><b>' + fmt(reste) + '</b></span>', 'Reste')}
         ${actionCell('editBud', 'delBud', b.id)}
       </tr>`;
     });
@@ -590,7 +597,7 @@ function renderDashboard() {
     tc.innerHTML = emptyRow(2, 'Aucune dépense');
   } else {
     topEntries.forEach(([c, v]) => {
-      tc.innerHTML += `<tr><td>${esc(c)}</td><td>${fmt(v)}</td></tr>`;
+      tc.innerHTML += `<tr>${td(esc(c), 'Catégorie')}${td(fmt(v), 'Montant')}</tr>`;
     });
   }
 
@@ -621,10 +628,10 @@ function renderDashboard() {
     all.forEach(o => {
       const cls = o.mont < 0 ? 'text-danger' : 'text-success';
       tl.innerHTML += `<tr>
-        <td>${esc(o.date)}</td>
-        <td>${esc(o.type)}</td>
-        <td>${esc(o.lib)}</td>
-        <td class="${cls}">${fmt(Math.abs(o.mont))}</td>
+        ${td(esc(o.date), 'Date')}
+        ${td(esc(o.type), 'Type')}
+        ${td(esc(o.lib), 'Libellé')}
+        ${td('<span class="' + cls + '">' + fmt(Math.abs(o.mont)) + '</span>', 'Montant')}
       </tr>`;
     });
   }
