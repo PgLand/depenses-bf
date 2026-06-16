@@ -157,17 +157,23 @@ html.mobile-nav main{padding-bottom:calc(72px + env(safe-area-inset-bottom))!imp
     <h2>Paramètres</h2>
     <div class="box">
       <h3>📱 Installer sur le téléphone</h3>
+      <div id="safariInstallWarn" class="alert-box alert-warn" hidden>
+        <strong>⚠️ Important (iPhone / iPad)</strong>
+        <p>Safari et l’app sur l’écran d’accueil <strong>ne partagent pas</strong> les mêmes données. Exportez d’abord vos dépenses, installez l’app, puis importez le fichier.</p>
+        <button type="button" id="btnExportBeforeInstall">⬇️ Exporter avant d’installer</button>
+      </div>
       <p class="hint">Installez l’app pour un accès rapide depuis l’écran d’accueil, comme une application native.</p>
       <button id="btnInstall" hidden>📲 Installer l’application</button>
       <ul class="install-steps">
+        <li><strong>iPhone (Safari)</strong> : 1) Exporter vos données ci-dessous · 2) Partager → « Sur l’écran d’accueil » · 3) Ouvrir l’app installée → Importer le fichier</li>
         <li><strong>Android (Chrome)</strong> : menu ⋮ → « Installer l’application » ou « Ajouter à l’écran d’accueil »</li>
-        <li><strong>iPhone (Safari)</strong> : Partager → « Sur l’écran d’accueil »</li>
       </ul>
     </div>
     <div class="box">
       <h3>Sauvegarde des données</h3>
-      <p>Vos données sont enregistrées localement dans ce navigateur. Pensez à les exporter régulièrement.</p>
+      <p>Vos données sont enregistrées localement dans <span id="storageContext">ce navigateur</span>. Pensez à les exporter régulièrement.</p>
       <button id="btnExport">⬇️ Exporter (JSON)</button>
+      <button type="button" id="btnShareExport" hidden>📤 Partager / enregistrer le fichier</button>
       <label class="btn-file">⬆️ Importer (JSON)<input type="file" id="fileImport" accept=".json" hidden/></label>
       <button id="btnReset" class="danger">🗑️ Tout effacer</button>
     </div>
@@ -185,9 +191,26 @@ html.mobile-nav main{padding-bottom:calc(72px + env(safe-area-inset-bottom))!imp
   <button class="tab" data-tab="parametres" role="tab" aria-selected="false" title="Paramètres"><span class="tab-ico">⚙️</span><span class="tab-text">Réglages</span></button>
 </nav>
 
+<div id="pwaImportModal" class="modal" hidden role="dialog" aria-labelledby="pwaModalTitle" aria-modal="true">
+  <div class="modal-box">
+    <h3 id="pwaModalTitle">📱 Récupérer vos données</h3>
+    <p>Sur iPhone, les dépenses enregistrées dans <strong>Safari</strong> ne sont pas copiées automatiquement dans l’app installée sur l’écran d’accueil.</p>
+    <ol class="modal-steps">
+      <li>Ouvrez <strong>Safari</strong> (pas l’icône installée)</li>
+      <li>Allez sur ce site → <strong>Réglages</strong> → <strong>Exporter</strong></li>
+      <li>Revenez ici → <strong>Importer</strong> le fichier JSON</li>
+    </ol>
+    <p class="hint">Le fichier se trouve dans l’app <strong>Fichiers</strong> → Téléchargements.</p>
+    <div class="modal-actions">
+      <label class="btn-file modal-btn">⬆️ Importer maintenant<input type="file" id="fileImportModal" accept=".json" hidden/></label>
+      <button type="button" id="btnModalDismiss" class="btn-cancel modal-btn">Plus tard</button>
+    </div>
+  </div>
+</div>
+
 <script>
 document.documentElement.classList.toggle('mobile-nav',window.matchMedia('(max-width:900px),(hover:none) and (pointer:coarse)').matches);
 </script>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@
 })();
 
 const KEY = 'depenses_bf_v1';
+const PWA_HINT_KEY = 'depenses_bf_import_hint_seen';
 const PERIOD_CUTOFF = 15;
 const MOIS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const JOURS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
@@ -128,6 +129,131 @@ function periodLabel(periodKeyStr) {
 function updatePeriodLabel() {
   const el = document.getElementById('periodLabel');
   if (el) el.textContent = periodLabel(currentMonth);
+}
+
+function hasData() {
+  return !!(state.repas.length || state.depenses.length || state.dettes.length || state.budgets.length);
+}
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function openTab(tabId) {
+  document.querySelectorAll('.tab').forEach(x => {
+    x.classList.remove('active');
+    x.setAttribute('aria-selected', 'false');
+  });
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+  const tab = document.querySelector('.tab[data-tab="' + tabId + '"]');
+  if (tab) {
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
+  }
+  const panel = document.getElementById(tabId);
+  if (panel) panel.classList.add('active');
+}
+
+function importFromJson(data) {
+  if (!validateImport(data)) throw new Error('invalid');
+  state = {
+    repas: migrateRepasList(data.repas || []),
+    depenses: data.depenses || [],
+    dettes: data.dettes || [],
+    budgets: data.budgets || []
+  };
+  save();
+  renderAll();
+}
+
+function handleImportFile(file, inputEl) {
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      importFromJson(JSON.parse(ev.target.result));
+      toast('Données importées avec succès');
+      document.getElementById('pwaImportModal').hidden = true;
+    } catch {
+      toast('Fichier JSON invalide ou incomplet', 'error');
+    }
+    if (inputEl) inputEl.value = '';
+  };
+  r.readAsText(file);
+}
+
+async function exportData() {
+  const json = JSON.stringify(state, null, 2);
+  const filename = 'depenses-bf-' + todayISO() + '.json';
+  const file = new File([json], filename, { type: 'application/json' });
+  if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+    try {
+      await navigator.share({ files: [file], title: 'Dépenses BF — sauvegarde' });
+      toast('Enregistrez le fichier, puis importez-le dans l’app installée');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+  const blob = new Blob([json], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Export téléchargé — cherchez-le dans Fichiers → Téléchargements');
+}
+
+function updateStorageContextUI() {
+  const el = document.getElementById('storageContext');
+  if (!el) return;
+  el.textContent = isStandalone() ? 'l’application installée' : 'Safari / ce navigateur';
+}
+
+function updateInstallWarnings() {
+  const warn = document.getElementById('safariInstallWarn');
+  const shareBtn = document.getElementById('btnShareExport');
+  if (warn) warn.hidden = !(isIOS() && !isStandalone() && hasData());
+  if (shareBtn) shareBtn.hidden = !(navigator.share && isIOS());
+}
+
+function checkPwaDataHint() {
+  if (!isStandalone() || hasData() || localStorage.getItem(PWA_HINT_KEY)) return;
+  const modal = document.getElementById('pwaImportModal');
+  if (!modal) return;
+  modal.hidden = false;
+  openTab('parametres');
+}
+
+function setupImportHandlers(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.onchange = e => handleImportFile(e.target.files[0], e.target);
+}
+
+function setupPwaStorageUI() {
+  updateStorageContextUI();
+  updateInstallWarnings();
+  checkPwaDataHint();
+
+  const btnBefore = document.getElementById('btnExportBeforeInstall');
+  const btnShare = document.getElementById('btnShareExport');
+  const btnDismiss = document.getElementById('btnModalDismiss');
+  if (btnBefore) btnBefore.onclick = exportData;
+  if (btnShare) btnShare.onclick = exportData;
+  if (btnDismiss) {
+    btnDismiss.onclick = () => {
+      localStorage.setItem(PWA_HINT_KEY, '1');
+      document.getElementById('pwaImportModal').hidden = true;
+    };
+  }
+
+  setupImportHandlers('fileImport');
+  setupImportHandlers('fileImportModal');
 }
 
 function todayISO() {
@@ -710,40 +836,7 @@ function renderDashboard() {
 }
 
 // PARAMETRES
-document.getElementById('btnExport').onclick = () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'depenses-bf-' + todayISO() + '.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast('Export téléchargé');
-};
-
-document.getElementById('fileImport').onchange = e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    try {
-      const data = JSON.parse(ev.target.result);
-      if (!validateImport(data)) throw new Error('invalid');
-      state = {
-        repas: migrateRepasList(data.repas || []),
-        depenses: data.depenses || [],
-        dettes: data.dettes || [],
-        budgets: data.budgets || []
-      };
-      save();
-      renderAll();
-      toast('Données importées avec succès');
-    } catch {
-      toast('Fichier JSON invalide ou incomplet', 'error');
-    }
-    e.target.value = '';
-  };
-  r.readAsText(f);
-};
+document.getElementById('btnExport').onclick = exportData;
 
 document.getElementById('btnReset').onclick = () => {
   if (confirm('Tout effacer ? Cette action est irréversible.')) {
@@ -764,10 +857,12 @@ function renderAll() {
   renderDet();
   renderBud();
   renderDashboard();
+  updateInstallWarnings();
 }
 
 load();
 renderAll();
+setupPwaStorageUI();
 
 // PWA — service worker & installation
 let deferredInstallPrompt = null;
