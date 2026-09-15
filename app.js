@@ -97,19 +97,11 @@ function periodRange(periodKeyStr) {
     end: isoDate(ny, nm, PERIOD_CUTOFF)
   };
 }
-
 function inMonth(date, m) {
   if (!date || !m) return false;
   const { start, end } = periodRange(m);
-  if (date < start || date > end) return false;
-  const [y, mo] = m.split('-').map(Number);
-  const [, dm] = date.split('-').map(Number);
-  const [py, pm] = shiftMonth(y, mo, -1);
-  const prevEnd = periodRange(periodKey(py, pm)).end;
-  if (date === prevEnd && date === start && dm > pm) return false;
-  return true;
+  return date >= start && date < end;
 }
-
 function getCurrentPeriod(dateStr = todayISO()) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const cur = periodKey(y, m);
