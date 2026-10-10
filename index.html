@@ -31,7 +31,7 @@ html.mobile-nav main{padding-bottom:calc(72px + env(safe-area-inset-bottom))!imp
   </div>
   <div class="period">
     <label>Période :</label>
-    <input type="month" id="periodMonth" title="Mois de début de la période (du 15 au 15)"/>
+    <input type="month" id="periodMonth" title="Mois de début de la période (du 15 au 14 du mois suivant)"/>
     <span id="periodLabel" class="period-range"></span>
   </div>
 </header>
@@ -211,6 +211,6 @@ html.mobile-nav main{padding-bottom:calc(72px + env(safe-area-inset-bottom))!imp
 <script>
 document.documentElement.classList.toggle('mobile-nav',window.matchMedia('(max-width:900px),(hover:none) and (pointer:coarse)').matches);
 </script>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
