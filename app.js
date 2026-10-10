@@ -115,7 +115,7 @@ function periodLabel(periodKeyStr) {
   const [y, m] = periodKeyStr.split('-').map(Number);
   const [ny, nm] = shiftMonth(y, m, 1);
   const endYear = nm < m ? ny : y;
-  return `15 ${MOIS_FR[m - 1]} – 15 ${MOIS_FR[nm - 1]} ${endYear}`;
+  return `${PERIOD_CUTOFF} ${MOIS_FR[m - 1]} – ${PERIOD_CUTOFF - 1} ${MOIS_FR[nm - 1]} ${endYear}`;
 }
 
 function updatePeriodLabel() {
@@ -318,7 +318,7 @@ document.querySelectorAll('.tab').forEach(t => {
   };
 });
 
-// Period (du 15 au 15)
+// Période de paie : du 15 au 14 du mois suivant.
 const pm = document.getElementById('periodMonth');
 pm.value = currentMonth;
 updatePeriodLabel();
@@ -882,6 +882,6 @@ window.addEventListener('appinstalled', () => {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=4').then(reg => reg.update()).catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=5').then(reg => reg.update()).catch(() => {});
   });
 }
