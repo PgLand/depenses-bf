@@ -4,11 +4,11 @@ Application web de gestion personnelle des dépenses en **FCFA**, conçue pour l
 
 ## Fonctionnalités
 
-- Tableau de bord mensuel (budget, dépenses, reste, dettes)
+- Tableau de bord par période de paie, du 15 au 14 du mois suivant (budget, dépenses, reste, dettes)
 - Repas du jour (petit-déj, déjeuner, dîner, snack)
 - Dépenses par catégorie
 - Suivi des dettes
-- Budget mensuel
+- Budget par période de paie
 - Export / import JSON
 
 ## Utiliser sur téléphone (PWA)
