@@ -351,3 +351,47 @@ html.mobile-nav .toast{
 @media(max-width:360px){
   html.mobile-nav .tab-text{font-size:.5rem}
 }
+
+
+/* Improved iPhone layout for tables and navigation */
+@media(max-width:900px){
+    html.mobile-nav .tabs{
+          display:grid;
+          grid-template-columns:repeat(3,minmax(0,1fr));
+          grid-template-rows:repeat(2,minmax(46px,1fr));
+          gap:4px 6px;
+          padding:6px 8px;
+          padding-bottom:calc(6px + env(safe-area-inset-bottom));
+          min-height:calc(112px + env(safe-area-inset-bottom));
+    }
+    html.mobile-nav .tab{
+          width:100%;
+          min-width:0;
+          min-height:46px;
+          padding:4px 2px;
+          gap:2px;
+    }
+    html.mobile-nav .tab-text{
+          font-size:.72rem;
+          overflow-wrap:anywhere;
+          text-overflow:clip;
+    }
+    html.mobile-nav main{padding-bottom:calc(126px + env(safe-area-inset-bottom))}
+    html.mobile-nav footer{padding-bottom:calc(20px + 118px + env(safe-area-inset-bottom))}
+    html.mobile-nav .toast{bottom:calc(130px + env(safe-area-inset-bottom))}
+
+  .table-wrap table.mobile-cards tbody td{
+        display:grid;
+        grid-template-columns:minmax(84px,38%) minmax(0,1fr);
+        align-items:start;
+        column-gap:10px;
+        min-width:0;
+        overflow-wrap:anywhere;
+        text-align:right;
+  }
+    .table-wrap table.mobile-cards tbody td::before{overflow-wrap:anywhere}
+    .table-wrap table.mobile-cards tbody td.actions{
+          display:flex;
+          justify-content:flex-end;
+    }
+}
