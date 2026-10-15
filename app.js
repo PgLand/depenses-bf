@@ -401,7 +401,7 @@ formRepas.onsubmit = e => {
 function renderRepas() {
   const tb = document.querySelector('#tblRepas tbody');
   tb.innerHTML = '';
-  let tp = 0, td = 0, tdi = 0, tsn = 0, tt = 0;
+  let tp = 0, tdej = 0, tdi = 0, tsn = 0, tt = 0;
   const rows = state.repas
     .filter(r => inMonth(r.date, currentMonth))
     .sort((a, b) => b.date.localeCompare(a.date));
@@ -411,7 +411,7 @@ function renderRepas() {
     rows.forEach(r => {
       const tot = repasTotal(r);
       tp += r.petit || 0;
-      td += r.dej || 0;
+      tdej += r.dej || 0;
       tdi += r.diner || 0;
       tsn += r.snack || 0;
       tt += tot;
@@ -428,7 +428,7 @@ function renderRepas() {
     });
   }
   document.getElementById('trPetit').textContent = fmt(tp);
-  document.getElementById('trDej').textContent = fmt(td);
+  document.getElementById('trDej').textContent = fmt(tdej);
   document.getElementById('trDiner').textContent = fmt(tdi);
   document.getElementById('trSnack').textContent = fmt(tsn);
   document.getElementById('trTotal').textContent = fmt(tt);
