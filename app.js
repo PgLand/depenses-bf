@@ -13,7 +13,7 @@ const PWA_HINT_KEY = 'depenses_bf_import_hint_seen';
 const PERIOD_CUTOFF = 15;
 const MOIS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const JOURS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-let state = { repas: [], depenses: [], dettes: [], budgets: [] };
+let state = { repas: [], depenses: [], dettes: [], budgets: [] }; let lastSavedState = JSON.stringify(state); let pendingSaveSuccessMessage = '';
 let currentMonth = getCurrentPeriod();
 
 function load() {
@@ -26,8 +26,8 @@ function load() {
       const hadOldFields = (state.repas || []).some(r =>
         r.gateau !== undefined || r.boisson !== undefined || r.labas !== undefined
       );
-      state.repas = migrated.map(({ gateau, boisson, labas, ...r }) => r);
-      if (hadOldFields) save();
+      state.repas = migrated.map(({ gateau, boisson, labas, ...r }) => r);       lastSavedState = JSON.stringify(state);
+      if (hadOldFields) if (!save()) return;
     }
   } catch {
     toast('Données locales illisibles — démarrage à zéro', 'error');
@@ -47,9 +47,9 @@ function repasTotal(r) {
 
 function save() {
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    localStorage.setItem(KEY, JSON.stringify(state)); lastSavedState = JSON.stringify(state); if (pendingSaveSuccessMessage) toast(pendingSaveSuccessMessage); pendingSaveSuccessMessage = ''; return true;
   } catch {
-    toast('Espace de stockage plein — exportez vos données', 'error');
+    state = JSON.parse(lastSavedState); pendingSaveSuccessMessage = ''; toast('Enregistrement impossible — vérifiez l’espace de stockage', 'error'); return false;
   }
 }
 
@@ -158,8 +158,8 @@ function importFromJson(data) {
     dettes: data.dettes || [],
     budgets: data.budgets || []
   };
-  save();
-  renderAll();
+  if (!save()) return false;
+  renderAll(); return true;
 }
 
 function handleImportFile(file, inputEl) {
@@ -167,7 +167,7 @@ function handleImportFile(file, inputEl) {
   const r = new FileReader();
   r.onload = ev => {
     try {
-      importFromJson(JSON.parse(ev.target.result));
+      if (!importFromJson(JSON.parse(ev.target.result))) return;
       toast('Données importées avec succès');
       document.getElementById('pwaImportModal').hidden = true;
     } catch {
@@ -381,18 +381,18 @@ formRepas.onsubmit = e => {
       return;
     }
     Object.assign(r, { date, ...entry });
-    toast('Repas modifié');
+    pendingSaveSuccessMessage = 'Repas modifié';
   } else {
     const existing = state.repas.find(r => r.date === date);
     if (existing) {
       Object.assign(existing, entry);
-      toast('Repas du ' + date + ' mis à jour');
+      pendingSaveSuccessMessage = 'Repas du ' + date + ' mis à jour';
     } else {
       state.repas.push({ id: uid(), date, ...entry });
-      toast('Repas enregistré');
+      pendingSaveSuccessMessage = 'Repas enregistré';
     }
   }
-  save();
+  if (!save()) return;
   resetRepasForm();
   renderRepas();
   renderDashboard();
@@ -437,7 +437,7 @@ function renderRepas() {
 window.delRepas = id => {
   if (confirm('Supprimer ce repas ?')) {
     state.repas = state.repas.filter(x => x.id !== id);
-    save();
+    if (!save()) return;
     renderRepas();
     renderDashboard();
     toast('Repas supprimé');
@@ -489,12 +489,12 @@ formDep.onsubmit = e => {
   };
   if (editId) {
     Object.assign(state.depenses.find(x => x.id === editId), data);
-    toast('Dépense modifiée');
+    pendingSaveSuccessMessage = 'Dépense modifiée';
   } else {
     state.depenses.push({ id: uid(), ...data });
-    toast('Dépense ajoutée');
+    pendingSaveSuccessMessage = 'Dépense ajoutée';
   }
-  save();
+  if (!save()) return;
   resetDepForm();
   renderDep();
   renderDashboard();
@@ -506,7 +506,7 @@ function renderDep() {
   const q = document.getElementById('dSearch').value.toLowerCase();
   const tb = document.querySelector('#tblDep tbody');
   tb.innerHTML = '';
-  let tot = 0;
+  const tot = depMois(currentMonth);
   const rows = state.depenses
     .filter(d => inMonth(d.date, currentMonth))
     .filter(d => !q || d.lib.toLowerCase().includes(q) || d.cat.toLowerCase().includes(q))
@@ -515,7 +515,7 @@ function renderDep() {
     tb.innerHTML = emptyRow(5, q ? 'Aucun résultat' : 'Aucune dépense pour cette période');
   } else {
     rows.forEach(d => {
-      tot += d.mont;
+
       tb.innerHTML += `<tr>
         ${td(esc(d.date), 'Date')}
         ${td(esc(d.cat), 'Catégorie')}
@@ -531,7 +531,7 @@ function renderDep() {
 window.delDep = id => {
   if (confirm('Supprimer cette dépense ?')) {
     state.depenses = state.depenses.filter(x => x.id !== id);
-    save();
+    if (!save()) return;
     renderDep();
     renderDashboard();
     toast('Dépense supprimée');
@@ -583,12 +583,12 @@ formDet.onsubmit = e => {
   };
   if (editId) {
     Object.assign(state.dettes.find(x => x.id === editId), data);
-    toast('Dette modifiée');
+    pendingSaveSuccessMessage = 'Dette modifiée';
   } else {
     state.dettes.push({ id: uid(), ...data });
-    toast('Dette enregistrée');
+    pendingSaveSuccessMessage = 'Dette enregistrée';
   }
-  save();
+  if (!save()) return;
   resetDetForm();
   renderDet();
   renderDashboard();
@@ -624,7 +624,7 @@ function renderDet() {
 window.toggleDet = id => {
   const d = state.dettes.find(x => x.id === id);
   d.statut = d.statut === 'dû' ? 'remboursé' : 'dû';
-  save();
+  if (!save()) return;
   renderDet();
   renderDashboard();
   toast(d.statut === 'remboursé' ? 'Dette marquée remboursée' : 'Dette marquée due');
@@ -633,7 +633,7 @@ window.toggleDet = id => {
 window.delDet = id => {
   if (confirm('Supprimer cette dette ?')) {
     state.dettes = state.dettes.filter(x => x.id !== id);
-    save();
+    if (!save()) return;
     renderDet();
     renderDashboard();
     toast('Dette supprimée');
@@ -685,14 +685,14 @@ formBud.onsubmit = e => {
     }
     b.mois = m;
     b.mont = mt;
-    toast('Budget modifié');
+    pendingSaveSuccessMessage = 'Budget modifié';
   } else {
     const ex = state.budgets.find(b => b.mois === m);
     if (ex) ex.mont = mt;
     else state.budgets.push({ id: uid(), mois: m, mont: mt });
-    toast('Budget enregistré');
+    pendingSaveSuccessMessage = 'Budget enregistré';
   }
-  save();
+  if (!save()) return;
   resetBudForm();
   renderBud();
   renderDashboard();
@@ -723,7 +723,7 @@ function renderBud() {
 window.delBud = id => {
   if (confirm('Supprimer ce budget ?')) {
     state.budgets = state.budgets.filter(x => x.id !== id);
-    save();
+    if (!save()) return;
     renderBud();
     renderDashboard();
     toast('Budget supprimé');
@@ -833,7 +833,7 @@ document.getElementById('btnExport').onclick = exportData;
 document.getElementById('btnReset').onclick = () => {
   if (confirm('Tout effacer ? Cette action est irréversible.')) {
     state = { repas: [], depenses: [], dettes: [], budgets: [] };
-    save();
+    if (!save()) return;
     renderAll();
     toast('Toutes les données ont été effacées', 'error');
   }
